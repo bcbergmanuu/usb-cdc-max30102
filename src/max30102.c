@@ -11,6 +11,7 @@
 #include "max30102.h"
 
 #define register_count 9
+#define led_channels 1
 
 const struct device *i2c;
 
@@ -68,7 +69,7 @@ int fetch_max30102(uint32_t * samplebuffer, int samplesToTake)
 	if (samplesToTake == 0) return 0;	
 	
 	uint32_t fifo_data;
-	int num_bytes = 3 * 2 * samplesToTake; //2 channels, 3 bytes each
+	int num_bytes = 3 * led_channels * samplesToTake; //2 channels, 3 bytes each
 	uint8_t buffer[num_bytes];
 
 	/* Read all the active channels for all samples */		 
@@ -78,7 +79,7 @@ int fetch_max30102(uint32_t * samplebuffer, int samplesToTake)
 		return 1;
 	}
 	
-	for (uint32_t y = 0; y < (samplesToTake * 2); y++)
+	for (uint32_t y = 0; y < (samplesToTake * led_channels); y++)
 	{				
 		/* Each channel sample is 18-bits */
 		fifo_data = (buffer[y*3] << 16) | (buffer[y*3 + 1] << 8) |
@@ -98,10 +99,12 @@ int max30102data(ppg_item_t * ppg_items, int samplesToTake) {
 		return 1;
 	}
 	unsigned int pic = 0; //ppg item count
-	for (size_t i = 0; i < buffersize; i+=2)
+	for (size_t i = 0; i < buffersize; i+=led_channels)
 	{				
 		ppg_items[pic].ir = buffer[i];
-		ppg_items[pic].red = buffer[i+1];
+#if(led_channels > 1)
+		ppg_items[pic].red = buffer[i+1];		
+#endif
 		pic++;
 	}
 	return 0;
@@ -175,17 +178,17 @@ int max30102_init()
 			{0x02, 0b10000000},
 			//DIE_TEMP_RDY_EN = false
 			{0x03, 0b00000000},
-			//FIFO config - average 1, yes rollover, fifo almost full @ 4 left	
-			{0x08, 0b00110100},
-			// mode configuration - sp02
-			{0x09, 0b00000011},
+			//FIFO config - average, yes rollover, fifo almost full @ 4 left	
+			{0x08, 0b01011111},
+			// mode configuration
+			{0x09, 0b00000010},
 			//Sample Rate Control
-			{0x0A, 0b01101111},
+			{0x0A, 0b01110111},
 			//LED pulse amplitude 
-			{0x0C, 0x0f},
-			{0x0D, 0x0f},
+			{0x0C, 0x7f},  	//red
+			{0x0D, 0x7f},	//ir
 			//multi-LED mode control 
-			{0x11, 0b00010010},
+			{0x11, 0b00000010},
 			{0x12, 0b00000000}
 		};		
 	

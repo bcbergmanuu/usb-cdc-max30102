@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <logging/log.h>
 #include "max30102.h"
-#define interruptpin 20
+#define interruptpin 2
 
 BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 	     "Console device is not ACM CDC UART device");
@@ -67,7 +67,12 @@ void main(void)
 	for(;;) {
 		fifo_item_t *queued;
 		queued = k_fifo_get(&ppg_items, K_FOREVER);
-		printk("%d,%d\n", queued->ppgvalueRed, queued->ppgvalueIr);				
+		#if (led_channels > 1)
+			printk("%d,%d\n", queued->ppgvalueIr, queued->ppgvalueRed);
+		#else
+			printk("%d\n", queued->ppgvalueIr);
+		#endif
+
 	}
 }
 

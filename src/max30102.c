@@ -134,7 +134,7 @@ int max30102_init()
 	//i2c = device_get_binding(max30102cfg.i2c_label);
 	i2c = DEVICE_DT_GET(DT_NODELABEL(i2c0));
 	__ASSERT(device_is_ready(i2c), "max30102 device not ready");
-
+	
 
 	/* Check the part id to make sure this is MAX30102 */
 	if (i2c_reg_read_byte(i2c, max30102cfg.i2c_addr,

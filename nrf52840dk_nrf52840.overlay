@@ -16,10 +16,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
+ 
+
+
  / {
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
 	};
+	zephyr,user {
+        signal-gpios = <&gpio0 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+    };
 };
 
 &zephyr_udc0 {
@@ -27,6 +34,7 @@
 		compatible = "zephyr,cdc-acm-uart";
 	};
 };
+
 
 &pinctrl {
 	i2c0_default: i2c0_default {
@@ -43,4 +51,6 @@
 			low-power-enable;
 		};
 	};
+
+
 };

@@ -6,7 +6,7 @@
 #include <logging/log.h>
 #include "max30102.h"
 
-#define interruptpin 20
+#define ZEPHYR_USER_NODE DT_PATH(zephyr_user)
 
 BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console), zephyr_cdc_acm_uart),
 	     "Console device is not ACM CDC UART device");
@@ -17,9 +17,8 @@ K_FIFO_DEFINE(ppg_items);
 K_SEM_DEFINE(sem_initialized_max30102, 0, 1);
 K_SEM_DEFINE(sem_interruptmax30102, 0, 1);
 
-const struct device *gpio0Port;	
-struct gpio_callback interrupt_max30102;
-
+static struct gpio_callback interrupt_max30102;
+static const struct gpio_dt_spec signal = GPIO_DT_SPEC_GET(ZEPHYR_USER_NODE, signal_gpios);
 
 typedef struct { 
     void *fifo_reserved;   /* 1st word reserved for use by FIFO */
@@ -33,12 +32,11 @@ void max30102isr(const struct device *dev, struct gpio_callback *cb, uint32_t pi
 
 void attachinterrupt(void) {
 	
-	gpio0Port = DEVICE_DT_GET(DT_NODELABEL(gpio0));	
-	__ASSERT(device_is_ready(gpio0Port), "port gpio0 not ready");
-	gpio_pin_configure(gpio0Port, interruptpin, (GPIO_INPUT | GPIO_PULL_UP));
-	gpio_pin_interrupt_configure(gpio0Port, interruptpin, GPIO_INT_EDGE_FALLING);
-	gpio_init_callback(&interrupt_max30102, max30102isr, BIT(interruptpin));
-  	gpio_add_callback(gpio0Port, &interrupt_max30102);
+	__ASSERT(device_is_ready(signal.port), "custom device not ready");
+	gpio_pin_configure_dt(&signal, GPIO_INPUT);
+	gpio_pin_interrupt_configure_dt(&signal, GPIO_INT_EDGE_TO_ACTIVE);
+	gpio_init_callback(&interrupt_max30102, max30102isr, BIT(signal.pin));
+	gpio_add_callback(signal.port, &interrupt_max30102);	
 }
 
 void main(void)
@@ -65,7 +63,8 @@ void main(void)
 	attachinterrupt();
 	uint8_t max_read_state = max30102_interrupt_state(); //clear interrupt;
 
-	LOG_INF("max initialized");
+	LOG_INF("max initialized, read state:%i", max_read_state);
+	
 	k_sem_give(&sem_initialized_max30102);
 	
 	for(;;) {
